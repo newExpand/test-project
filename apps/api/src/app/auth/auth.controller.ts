@@ -14,6 +14,7 @@ import type {
   Response as ExpressResponse,
   Request as ExpressRequest,
 } from 'express';
+import { jwtConstants } from './constants';
 
 interface RequestWithUser extends ExpressRequest {
   user: { userId: number; username: string };
@@ -32,20 +33,21 @@ export class AuthController {
   ) {
     const tokens = await this.authService.login(req.user);
 
-    // HTTP-only 쿠키에 토큰 저장
-    response.cookie(
-      'auth-cookie',
-      {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      },
-      {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // HTTPS 연결에서만 쿠키 전송
-        sameSite: 'strict', // CSRF 방지
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
-      }
-    );
+    // Access Token을 위한 쿠키 설정
+    response.cookie('access-token', tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 10 * 1000, // 10초
+    });
+
+    // Refresh Token을 위한 쿠키 설정
+    response.cookie('refresh-token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7 * 1000, // 7일
+    });
 
     return { message: 'Login successful' };
   }
@@ -56,7 +58,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: ExpressResponse
   ) {
     // 쿠키에서 리프레시 토큰 가져오기
-    const refreshToken = req.cookies['auth-cookie']?.refreshToken;
+    const refreshToken = req.cookies['refresh-token'];
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
@@ -65,22 +67,23 @@ export class AuthController {
     try {
       const tokens = await this.authService.refreshTokens(refreshToken);
 
-      // 기존 쿠키에 있는 refreshToken 그대로 유지하면서 accessToken만 업데이트
-      response.cookie(
-        'auth-cookie',
-        {
-          accessToken: tokens.accessToken,
-          refreshToken: refreshToken,
-        },
-        {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        }
-      );
+      // 새로운 액세스 토큰 설정
+      response.cookie('access-token', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 10 * 1000, // 10초
+      });
 
-      return { message: 'Token refreshed successfully' };
+      // 새로운 리프레시 토큰 설정
+      response.cookie('refresh-token', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7 * 1000, // 7일
+      });
+
+      return { message: 'Tokens refreshed successfully' };
     } catch (_e) {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -88,8 +91,9 @@ export class AuthController {
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) response: ExpressResponse) {
-    // 쿠키 삭제
-    response.clearCookie('auth-cookie');
+    // 모든 인증 관련 쿠키 삭제
+    response.clearCookie('access-token');
+    response.clearCookie('refresh-token');
     return { message: 'Logout successful' };
   }
 

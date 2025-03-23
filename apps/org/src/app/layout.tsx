@@ -1,4 +1,5 @@
 import './global.css';
+import { ReactQueryProvider } from '../lib/api/ReactQueryProvider';
 
 export const metadata = {
   title: 'Welcome to org',
@@ -12,7 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ReactQueryProvider>{children}</ReactQueryProvider>
+      </body>
     </html>
   );
 }
