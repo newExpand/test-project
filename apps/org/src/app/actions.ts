@@ -84,3 +84,30 @@ export async function refreshMultipleTags(tags: string[]) {
     return { success: false, message: '태그 재검증 중 오류가 발생했습니다.' };
   }
 }
+
+/**
+ * 특정 태그를 재검증하는 서버 액션
+ * @param tags 재검증할 태그 배열
+ * @returns 재검증 결과
+ */
+export async function revalidateTagAction(tags: string[]) {
+  try {
+    // 모든 태그에 대해 재검증 실행
+    for (const tag of tags) {
+      revalidateTag(tag);
+    }
+
+    return {
+      success: true,
+      message: '데이터가 성공적으로 재검증되었습니다.',
+      tags: tags,
+    };
+  } catch (error) {
+    console.error('재검증 중 오류 발생:', error);
+    return {
+      success: false,
+      message: '데이터 재검증 중 오류가 발생했습니다.',
+      error: String(error),
+    };
+  }
+}

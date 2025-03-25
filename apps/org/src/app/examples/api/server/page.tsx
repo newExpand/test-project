@@ -1,12 +1,24 @@
 import { Suspense } from 'react';
 import UniversalApiServerExample from '../../../../examples/UniversalApiServerExample';
 import Link from 'next/link';
+import { get } from '@/lib/api';
+import axios from 'axios';
 
 /**
  * 서버 컴포넌트 API 예제 페이지
  * 서버 컴포넌트에서 API를 사용하는 예제를 보여줍니다.
  */
-export default function ServerApiExamplesPage() {
+export default async function ServerApiExamplesPage() {
+  const post = await axios.get('http://localhost:3333/api/posts', {
+    adapter: 'fetch',
+    fetchOptions: {
+      cache: 'force-cache',
+      next: { revalidate: 10 },
+    },
+  });
+
+  console.log(post);
+
   return (
     <div className="container mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold mb-6">서버 컴포넌트 API 예시</h1>
@@ -42,7 +54,7 @@ export default function ServerApiExamplesPage() {
         <Suspense
           fallback={<div className="p-6">서버 컴포넌트 로딩 중...</div>}
         >
-          <UniversalApiServerExample />
+          {/* <UniversalApiServerExample /> */}
         </Suspense>
       </div>
 

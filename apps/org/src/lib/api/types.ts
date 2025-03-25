@@ -3,6 +3,25 @@ import { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import type { RequestCookies } from 'next/dist/server/web/spec-extension/cookies';
 
 /**
+ * Next.js fetch 요청 설정 타입
+ */
+export interface NextFetchRequestConfig {
+  revalidate?: number | false;
+  tags?: string[];
+  [key: string]: any;
+}
+
+/**
+ * Fetch 옵션 타입
+ */
+export interface FetchOptions {
+  cache?: RequestCache;
+  next?: NextFetchRequestConfig;
+  credentials?: RequestCredentials;
+  [key: string]: any;
+}
+
+/**
  * 토큰 리프레시 에러 확장 인터페이스
  */
 export interface TokenRefreshError extends Error {
@@ -14,6 +33,10 @@ export interface TokenRefreshError extends Error {
  */
 export interface ServerSideConfig extends InternalAxiosRequestConfig {
   cookies?: RequestCookies;
+  // Next.js 관련 속성 추가
+  cache?: RequestCache;
+  next?: NextFetchRequestConfig;
+  fetchOptions?: FetchOptions;
 }
 
 /**
@@ -35,8 +58,8 @@ export interface ApiOptions<D = any> {
 
   // Next.js 캐싱 설정
   cache?: RequestCache;
-  revalidate?: NextFetchRequestConfig['revalidate'];
-  tags?: NextFetchRequestConfig['tags'];
+  revalidate?: number | false;
+  tags?: string[];
 
   // Next.js config 객체 (직접 설정할 경우)
   next?: NextFetchRequestConfig | undefined;

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import { ReactQueryProvider } from '../../../lib/api/ReactQueryProvider';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
@@ -101,6 +100,20 @@ export default function ApiExamplesPage() {
               <p className="mt-2 text-sm text-gray-600">
                 서버 컴포넌트의 초기 데이터 로딩과 클라이언트의 실시간
                 업데이트를 결합한 예제입니다.
+              </p>
+            </div>
+
+            <div className="border-t pt-4">
+              <p className="mb-2">서버 컴포넌트에서의 태그 기반 캐싱 예시:</p>
+              <Link
+                href="/examples/api/server-tag"
+                className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                서버 태그 예시 보기
+              </Link>
+              <p className="mt-2 text-sm text-gray-600">
+                서버 컴포넌트에서의 태그 기반 캐싱과 서버 액션을 통한 재검증
+                예제입니다.
               </p>
             </div>
           </div>

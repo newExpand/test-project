@@ -1,5 +1,10 @@
-import axios, { AxiosError, AxiosInstance, AxiosHeaders } from 'axios';
-import { fetchAdapter } from './axiosFetchAdapter';
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosHeaders,
+  AxiosRequestHeaders,
+} from 'axios';
+// import { fetchAdapter } from './axiosFetchAdapter'; // 커스텀 어댑터 제거
 import {
   ServerSideConfig,
   ServerSideAdapter,
@@ -96,45 +101,59 @@ function isUnauthorizedError(error: unknown): error is AxiosError {
   return error instanceof AxiosError && error.response?.status === 401;
 }
 
-async function executeServerSideRequest(
-  config: ServerSideConfig,
-  headers: AxiosHeaders
-) {
-  return await (fetchAdapter as ServerSideAdapter)({
-    ...config,
-    headers,
-  });
-}
-
-async function handleServerSideTokenRefresh(
-  config: ServerSideConfig,
-  headers: AxiosHeaders
-) {
-  const cookieStore = await getServerSideCookies();
-  const refreshToken = cookieStore?.get('refresh-token')?.value;
-
-  if (refreshToken) {
-    const newAccessTokenCookie = await refreshTokenServer(refreshToken);
-    if (newAccessTokenCookie) {
-      headers.set('Cookie', newAccessTokenCookie);
-      return await executeServerSideRequest(config, headers);
-    }
-  }
-  return null;
-}
-
+/**
+ * 서버 사이드 요청 처리
+ * 공식 fetch 어댑터 사용하여 서버 사이드 요청 처리
+ */
 const serverSideAdapter: ServerSideAdapter = async (config) => {
-  const headers = new Headers(config.headers as HeadersInit);
-  await setupServerSideCookies(headers);
-
-  const axiosHeaders = createAxiosHeaders(headers);
-
   try {
-    return await executeServerSideRequest(config, axiosHeaders);
+    // 서버 사이드 쿠키 설정
+    if (!config.headers) {
+      config.headers = new AxiosHeaders();
+    }
+
+    const cookieStore = await getServerSideCookies();
+    const cookieString = cookieStore?.toString();
+    if (cookieString) {
+      config.headers.set('Cookie', cookieString);
+    }
+
+    // fetch 어댑터 설정
+    config.adapter = 'fetch';
+
+    // fetch 옵션 설정
+    config.fetchOptions = {
+      ...config.fetchOptions,
+      cache: (config.cache as RequestCache) || 'no-store',
+      next: config.next || {},
+      credentials: config.withCredentials ? 'include' : 'same-origin',
+    };
+
+    // 디버깅을 위한 로그 추가
+    if (typeof window === 'undefined') {
+      console.log(
+        `[Server Adapter] ${config.method} ${config.url} - Options:`,
+        {
+          cache: config.fetchOptions.cache,
+          next: config.fetchOptions.next,
+        }
+      );
+    }
+
+    return await axios(config);
   } catch (error) {
     if (isUnauthorizedError(error)) {
-      const result = await handleServerSideTokenRefresh(config, axiosHeaders);
-      if (result) return result;
+      const cookieStore = await getServerSideCookies();
+      const refreshToken = cookieStore?.get('refresh-token')?.value;
+
+      if (refreshToken) {
+        const newAccessTokenCookie = await refreshTokenServer(refreshToken);
+        if (newAccessTokenCookie) {
+          if (!config.headers) config.headers = new AxiosHeaders();
+          config.headers.set('Cookie', newAccessTokenCookie);
+          return await axios(config);
+        }
+      }
     }
     throw error;
   }
@@ -144,9 +163,7 @@ const serverSideAdapter: ServerSideAdapter = async (config) => {
  * 클라이언트 사이드 토큰 갱신 처리
  */
 async function handleClientSideTokenRefresh(error: AxiosError) {
-  const originalRequest = error.config as ServerSideConfig & {
-    _retry?: boolean;
-  };
+  const originalRequest = error.config as any;
 
   // 401 에러가 아니거나 이미 재시도한 요청이면 바로 에러 반환
   if (error.response?.status !== 401 || originalRequest._retry) {
@@ -188,7 +205,7 @@ const axiosInstance: AxiosInstance = axios.create({
     Accept: 'application/json',
   },
   withCredentials: true,
-  adapter: typeof window === 'undefined' ? serverSideAdapter : fetchAdapter,
+  adapter: typeof window === 'undefined' ? serverSideAdapter : 'fetch', // 공식 fetch 어댑터 사용
 });
 
 // 인터셉터 설정
@@ -212,31 +229,42 @@ axiosInstance.interceptors.response.use(
 export const withRevalidate = (seconds: number | boolean | undefined) => {
   // 캐싱하지 않음 (기본값)
   if (seconds === undefined) {
-    return { cache: 'no-store' };
+    return {
+      cache: 'no-store',
+      fetchOptions: { cache: 'no-store' },
+    };
   }
 
   // 무기한 캐싱
   if (seconds === false) {
     return {
-      headers: { 'x-revalidate': 'false' },
       next: { revalidate: false },
       cache: 'force-cache',
+      revalidate: false,
+      fetchOptions: {
+        cache: 'force-cache',
+        next: { revalidate: false },
+      },
     };
   }
 
   // 특정 시간(초) 동안 캐싱
   if (typeof seconds === 'number') {
     return {
-      headers: { 'x-revalidate': seconds.toString() },
       next: { revalidate: seconds },
       cache: 'force-cache',
+      revalidate: seconds,
+      fetchOptions: {
+        cache: 'force-cache',
+        next: { revalidate: seconds },
+      },
     };
   }
 
   // 기타 케이스: 캐싱하지 않음
   return {
-    headers: { 'x-cache-control': 'no-store' },
     cache: 'no-store',
+    fetchOptions: { cache: 'no-store' },
   };
 };
 

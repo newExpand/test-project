@@ -39,8 +39,24 @@ export async function api<T = any, D = any>(
     ...(data && method !== 'GET' ? { data } : {}),
     ...(timeout ? { timeout } : {}),
     ...revalidateConfig,
-    headers: prepareHeaders(headers, nextOptions, cache),
+    // 공식 fetch 어댑터 사용
+    adapter: 'fetch',
+    // 명시적으로 fetch 옵션 설정
+    fetchOptions: {
+      cache: (cache || revalidateConfig.fetchOptions?.cache) as RequestCache,
+      next: nextOptions,
+    },
+    headers: prepareHeaders(headers, nextOptions),
   };
+
+  // 디버깅용 로그 추가
+  if (typeof window === 'undefined') {
+    console.log(`[API Request] ${method} ${url} - Cache Config:`, {
+      revalidate: nextOptions.revalidate,
+      tags: nextOptions.tags,
+      cache: config.fetchOptions.cache,
+    });
+  }
 
   // 요청 실행 및 결과 반환
   const response = await axiosInstance.request<T>(config);
@@ -52,15 +68,13 @@ export async function api<T = any, D = any>(
  */
 function prepareHeaders(
   headers: Record<string, string>,
-  nextOptions: { revalidate?: number | false; tags?: string[] },
-  cache?: RequestCache
+  nextOptions: { revalidate?: number | false; tags?: string[] }
 ): Record<string, string> {
   return {
     ...headers,
     ...(nextOptions.tags?.length
       ? { 'x-nextjs-tags': nextOptions.tags.join(',') }
       : {}),
-    ...(cache === 'force-cache' ? { 'x-cache-control': cache } : {}),
   };
 }
 
