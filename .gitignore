@@ -4,6 +4,9 @@
 dist
 tmp
 out-tsc
+ing
+
+*.tgz
 
 # dependencies
 node_modules
@@ -35,6 +38,7 @@ testem.log
 /typings
 .cursor
 .autopr.json
+package-lock.json
 
 
 # System Files
@@ -49,3 +53,6 @@ Thumbs.db
 out
 
 test-output
+
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
