@@ -10,7 +10,7 @@
     "@nestjs/platform-express": "^10.0.2",
     "axios": "^1.6.0",
     "next": "~15.1.4",
-    "next-type-fetch": "file:next-type-fetch-0.0.1.tgz",
+    "next-type-fetch": "file:next-type-fetch/next-type-fetch-0.1.0.tgz",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "reflect-metadata": "^0.1.13",

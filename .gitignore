@@ -39,6 +39,7 @@ testem.log
 .cursor
 .autopr.json
 package-lock.json
+docs
 
 
 # System Files

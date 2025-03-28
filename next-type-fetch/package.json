@@ -1,0 +1,35 @@
+{
+  "name": "next-type-fetch",
+  "version": "0.1.0",
+  "description": "Type-safe fetch library for Next.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "next.js",
+    "fetch",
+    "typescript",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "tslib": "^2.3.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.0.9",
+    "eslint": "^9.8.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.9"
+  }
+}

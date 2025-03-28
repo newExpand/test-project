@@ -3,9 +3,6 @@ import { User, CreateUserDto } from './users.dto';
 
 @Injectable()
 export class UsersService {
-  // 마지막 데이터 업데이트 시간
-  private lastUpdated: string = new Date().toISOString();
-
   // 마지막 요청 ID (로깅용)
   private lastRequestId = '';
 
@@ -43,37 +40,33 @@ export class UsersService {
     },
   ];
 
-  // 사용자 목록 셔플 상태 (고정된 순서)
-  private shuffledUsers: User[] = [];
-
   constructor() {
-    console.log('UsersService 초기화됨 - Next.js 캐싱 테스트용 v2');
-
-    // 초기 셔플
-    this.shuffleUsersOnce();
-
-    // 30초마다 사용자 데이터 자동 업데이트 (Next.js의 ISR 테스트용)
-    setInterval(() => {
-      this.updateAllUsersData();
-    }, 30000); // 30초마다 업데이트
+    console.log('UsersService 초기화됨 - Next.js 캐싱 테스트용 v4 (완전 랜덤)');
   }
 
-  // 모든 사용자 조회 (고정된 순서로 반환 - 캐싱 가능)
+  // 모든 사용자 조회 (매 요청마다 새로운 랜덤 순서와 타임스탬프 반환)
   getAllUsers(): { users: User[]; lastUpdated: string; timestamp: string } {
     // 현재 요청의 타임스탬프와 식별자 (로깅용)
     const now = new Date();
     const timestamp = now.toLocaleTimeString();
+    const lastUpdated = now.toISOString();
+
     this.lastRequestId = `req-${Math.floor(
       Math.random() * 10000
     )}-${timestamp}`;
 
-    console.log(`[getAllUsers 호출] 요청 ID: ${this.lastRequestId}`);
+    // 매 요청마다 새롭게 셔플된 사용자 목록 생성
+    const shuffledUsers = this.shuffleArray([...this.users]);
 
-    // 셔플된 사용자 목록 반환 (ISR 캐싱 테스트를 위해 동일한 데이터 유지)
+    console.log(
+      `[getAllUsers 호출] 요청 ID: ${this.lastRequestId} - 완전히 새로운 랜덤 데이터 반환`
+    );
+
+    // 새로 셔플된 데이터와 현재 타임스탬프 반환
     return {
-      users: this.shuffledUsers,
-      lastUpdated: this.lastUpdated,
-      timestamp: timestamp, // 캐싱에 영향을 주지 않는 현재 요청 시간
+      users: shuffledUsers,
+      lastUpdated: lastUpdated, // 매 요청마다 새로 생성
+      timestamp: timestamp,
     };
   }
 
@@ -91,43 +84,16 @@ export class UsersService {
       ...createUserDto,
     };
     this.users.push(newUser);
-
-    // 데이터 업데이트 시간 갱신 및 사용자 목록 재셔플
-    this.updateAllUsersData();
-
     return newUser;
   }
 
   // 모든 사용자 데이터 수동 업데이트 (재검증 테스트용)
   updateAllUsers(): { users: User[]; lastUpdated: string; timestamp: string } {
-    // 데이터 업데이트 및 재셔플
-    this.updateAllUsersData();
-
-    console.log(`[수동 업데이트] 데이터 갱신됨: ${this.lastUpdated}`);
+    const now = new Date();
+    console.log(`[수동 업데이트] 데이터 갱신됨: ${now.toISOString()}`);
 
     // 최신 데이터 반환
     return this.getAllUsers();
-  }
-
-  // 사용자 목록을 한 번만 셔플 (고정된 순서 생성)
-  private shuffleUsersOnce(): void {
-    this.shuffledUsers = this.shuffleArray([...this.users]);
-    console.log('[데이터 셔플] 사용자 목록 순서가 변경되었습니다.');
-  }
-
-  // 모든 데이터 업데이트 (시간 갱신 + 재셔플)
-  private updateAllUsersData(): void {
-    // 현재 시간 설정
-    const now = new Date();
-    this.lastUpdated = now.toISOString();
-    const timestamp = now.toLocaleTimeString();
-
-    // 사용자 목록 재셔플
-    this.shuffleUsersOnce();
-
-    console.log(
-      `[데이터 갱신] ${timestamp} - 타임스탬프 업데이트 및 사용자 목록 재셔플`
-    );
   }
 
   // 배열 랜덤 섞기 (Fisher-Yates 알고리즘)
